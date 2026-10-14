@@ -1,4 +1,4 @@
-import { Queue } from 'bullmq';
+import { Queue, type JobsOptions } from 'bullmq';
 import IORedis from 'ioredis';
 import { QUEUES, DEFAULT_JOB_OPTIONS, type QueueName } from './queues';
 
@@ -21,8 +21,14 @@ function q(name: QueueName): Queue {
   return queue;
 }
 
-export function enqueue(name: QueueName, jobName: string, data: unknown, opts?: { jobId?: string }) {
-  return q(name).add(jobName, data, opts);
+export function enqueue(
+  name: QueueName,
+  jobName: string,
+  data: unknown,
+  opts?: { jobId?: string },
+  extra?: JobsOptions,
+) {
+  return q(name).add(jobName, data, { ...opts, ...extra });
 }
 
 export { QUEUES };

@@ -1,6 +1,12 @@
 import type { Job } from 'bullmq';
 import type IORedis from 'ioredis';
-import { createLlmProvider, type LlmProvider } from '@estateflow/shared';
+import {
+  createLlmProvider,
+  computeScore,
+  tierForScore,
+  type LlmProvider,
+  type ScoringWeights,
+} from '@estateflow/shared';
 import { withTenant } from '../prisma';
 import { publishRealtime } from '../realtime-publisher';
 import { logger } from '../logger';
@@ -39,11 +45,53 @@ export async function processAi(job: Job, redis: IORedis): Promise<{ ok: boolean
 
   const { qualification, usage } = await provider().extract({ conversation });
 
-  await withTenant(tenantId, async (tx) => {
+  const scored = await withTenant(tenantId, async (tx) => {
+    const lead = await tx.lead.findUnique({ where: { id: leadId } });
+    if (!lead) return null;
+
+    const inboundCount = await tx.message.count({ where: { leadId, direction: 'INBOUND' } });
+    const daysSinceLastInbound = lead.lastInboundAt
+      ? Math.floor((Date.now() - new Date(lead.lastInboundAt).getTime()) / 86_400_000)
+      : 0;
+
+    // Tenant-configurable weights (PRD §4.3). Falls back to defaults.
+    const tenant = await tx.tenant.findUnique({ where: { id: tenantId } });
+    const weights = (tenant?.scoringWeights ?? {}) as Partial<ScoringWeights>;
+
+    const result = computeScore(
+      { qualification, inboundCount, source: lead.source, daysSinceLastInbound },
+      Object.keys(weights).length ? (weights as ScoringWeights) : undefined,
+    );
+
+    const oldScore = lead.score;
     await tx.lead.update({
       where: { id: leadId },
-      data: { qualification: qualification as unknown as object },
+      data: {
+        qualification: qualification as unknown as object,
+        score: result.score,
+        tier: tierForScore(result.score),
+      },
     });
+    if (result.score !== oldScore) {
+      await tx.scoreEvent.create({
+        data: {
+          tenantId,
+          leadId,
+          oldScore,
+          newScore: result.score,
+          reasons: result.reasons as unknown as object,
+        },
+      });
+      await tx.activity.create({
+        data: {
+          tenantId,
+          leadId,
+          type: 'SCORE_CHANGE',
+          payload: { from: oldScore, to: result.score, tier: result.tier },
+        },
+      });
+    }
+
     await tx.llmUsage.create({
       data: {
         tenantId,
@@ -56,14 +104,19 @@ export async function processAi(job: Job, redis: IORedis): Promise<{ ok: boolean
         costMicroUsd: usage.costMicroUsd,
       },
     });
+
+    return result;
   });
 
   await publishRealtime(redis, {
     tenantId,
     leadId,
     event: 'lead:qualification',
-    payload: { leadId, qualification },
+    payload: { leadId, qualification, score: scored?.score, tier: scored?.tier },
   });
-  logger.info({ tenantId, leadId, intent: qualification.intent }, 'qualified lead');
+  logger.info(
+    { tenantId, leadId, intent: qualification.intent, score: scored?.score },
+    'qualified + scored lead',
+  );
   return { ok: true };
 }

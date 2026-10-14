@@ -134,6 +134,7 @@ model Tenant {
   messages            Message[]
   templates           Template[]
   llmUsage            LlmUsage[]
+  scoreEvents         ScoreEvent[]
 
   @@map("tenants")
 }
@@ -266,10 +267,11 @@ model Lead {
   createdAt      DateTime   @default(now())
   updatedAt      DateTime   @updatedAt
 
-  tenant     Tenant     @relation(fields: [tenantId], references: [id], onDelete: Cascade)
-  contact    Contact    @relation(fields: [contactId], references: [id], onDelete: Cascade)
-  activities Activity[]
-  messages   Message[]
+  tenant      Tenant       @relation(fields: [tenantId], references: [id], onDelete: Cascade)
+  contact     Contact      @relation(fields: [contactId], references: [id], onDelete: Cascade)
+  activities  Activity[]
+  messages    Message[]
+  scoreEvents ScoreEvent[]
 
   @@index([tenantId])
   @@index([tenantId, stage])
@@ -393,4 +395,23 @@ model LlmUsage {
   @@index([tenantId])
   @@index([tenantId, createdAt])
   @@map("llm_usage")
+}
+
+
+// Score history: every change with its explainable reasons (PRD §4.3 / FR-10).
+model ScoreEvent {
+  id        String   @id @default(uuid()) @db.Uuid
+  tenantId  String   @db.Uuid
+  leadId    String   @db.Uuid
+  oldScore  Int
+  newScore  Int
+  reasons   Json     @default("[]")
+  createdAt DateTime @default(now())
+
+  tenant Tenant @relation(fields: [tenantId], references: [id], onDelete: Cascade)
+  lead   Lead   @relation(fields: [leadId], references: [id], onDelete: Cascade)
+
+  @@index([tenantId])
+  @@index([tenantId, leadId])
+  @@map("score_events")
 }

@@ -5,7 +5,8 @@ import { QUEUES, type QueueName } from './queues';
 import { processInbound } from './processors/inbound';
 import { processOutbound } from './processors/outbound';
 import { processAi } from './processors/ai';
-import { closeProducer } from './producer';
+import { processScoring } from './processors/scoring';
+import { closeProducer, enqueue } from './producer';
 import { prisma } from './prisma';
 
 /**
@@ -32,6 +33,7 @@ const PROCESSORS: Partial<Record<QueueName, Processor>> = {
   [QUEUES.INBOUND]: (job) => processInbound(job, pub),
   [QUEUES.OUTBOUND]: (job) => processOutbound(job, pub),
   [QUEUES.AI]: (job) => processAi(job, pub),
+  [QUEUES.SCORING]: (job) => processScoring(job),
 };
 
 const workers: Worker[] = [];
@@ -46,6 +48,13 @@ function start(): void {
     workers.push(worker);
   }
   logger.info({ queues: Object.values(QUEUES) }, 'EstateFlow worker started');
+
+  // Nightly cold-lead decay sweep (02:30). Repeatable jobs are deduped by key,
+  // so re-registering on each boot is safe.
+  enqueue(QUEUES.SCORING, 'decay-sweep', {}, undefined, {
+    repeat: { pattern: '30 2 * * *' },
+    jobId: 'nightly-decay-sweep',
+  }).catch((err) => logger.warn({ err: (err as Error).message }, 'failed to schedule decay sweep'));
 }
 
 async function shutdown(signal: string): Promise<void> {

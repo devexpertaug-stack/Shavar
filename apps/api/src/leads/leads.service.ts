@@ -262,6 +262,7 @@ export class LeadsService {
       include: {
         contact: true,
         activities: { orderBy: { createdAt: 'desc' }, take: 100 },
+        scoreEvents: { orderBy: { createdAt: 'desc' }, take: 20 },
       },
     });
   }

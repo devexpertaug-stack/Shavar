@@ -10,12 +10,29 @@ const tx = {
     findMany: vi.fn(async () => [
       { direction: 'INBOUND', type: 'text', body: '2bhk chahiye wakad me 70 lakh tak, 3 mahine me' },
     ]),
+    count: vi.fn(async () => 2),
   },
   lead: {
+    findUnique: vi.fn(async () => ({
+      id: 'lead_1',
+      score: 0,
+      source: 'WHATSAPP',
+      lastInboundAt: new Date(),
+      qualification: {},
+    })),
     update: vi.fn(async ({ data }: { data: Record<string, unknown> }) => {
       state.leadUpdates.push(data);
       return {};
     }),
+  },
+  tenant: {
+    findUnique: vi.fn(async () => ({ id: 'tenant', scoringWeights: {} })),
+  },
+  scoreEvent: {
+    create: vi.fn(async () => ({})),
+  },
+  activity: {
+    create: vi.fn(async () => ({})),
   },
   llmUsage: {
     create: vi.fn(async ({ data }: { data: Record<string, unknown> }) => {

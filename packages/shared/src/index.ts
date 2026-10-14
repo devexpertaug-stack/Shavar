@@ -10,3 +10,4 @@ export * from './whatsapp';
 export * from './providers';
 export * from './window';
 export * from './llm';
+export * from './scoring';
