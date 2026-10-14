@@ -140,6 +140,7 @@ model Tenant {
   projects            Project[]
   units               Unit[]
   mediaAssets         MediaAsset[]
+  calls               Call[]
   // Round-robin cursor so routing rotates fairly across invocations.
   routingCursor       Int                  @default(0)
 
@@ -279,6 +280,7 @@ model Lead {
   activities  Activity[]
   messages    Message[]
   scoreEvents ScoreEvent[]
+  calls       Call[]
 
   @@index([tenantId])
   @@index([tenantId, stage])
@@ -531,4 +533,37 @@ model MediaAsset {
 
   @@index([tenantId])
   @@map("media_assets")
+}
+
+
+enum CallOutcome {
+  connected
+  no_answer
+  callback
+  not_interested
+  visit_booked
+}
+
+// Telephony call log (PRD §4.5 / FR-14). Click-to-call via Exotel; the call is
+// auto-logged with recording/transcript/summary and a mandatory outcome.
+model Call {
+  id             String       @id @default(uuid()) @db.Uuid
+  tenantId       String       @db.Uuid
+  leadId         String       @db.Uuid
+  userId         String?      @db.Uuid
+  providerCallId String?
+  durationSec    Int?
+  recordingUrl   String?
+  transcript     String?
+  summary        String?
+  outcome        CallOutcome?
+  createdAt      DateTime     @default(now())
+  updatedAt      DateTime     @updatedAt
+
+  tenant Tenant @relation(fields: [tenantId], references: [id], onDelete: Cascade)
+  lead   Lead   @relation(fields: [leadId], references: [id], onDelete: Cascade)
+
+  @@index([tenantId])
+  @@index([tenantId, leadId])
+  @@map("calls")
 }

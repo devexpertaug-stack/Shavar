@@ -123,7 +123,22 @@ export const api = {
   matchUnits: (leadId: string) => request<MatchedUnit[]>(`/units/match?leadId=${leadId}`),
   sendUnit: (leadId: string, unitId: string, what: 'brochure' | 'location') =>
     request<{ ok: boolean }>('/units/send', { method: 'POST', body: JSON.stringify({ leadId, unitId, what }) }),
+
+  // --- tele-caller (Task 12) ---
+  nextBestCalls: () => request<QueueCard[]>('/queue/next-best-calls'),
+  clickToCall: (leadId: string, agentNumber: string) =>
+    request<{ id: string }>('/calls/click-to-call', { method: 'POST', body: JSON.stringify({ leadId, agentNumber }) }),
+  callOutcome: (callId: string, outcome: string, nextFollowupAt?: string) =>
+    request<unknown>(`/calls/${callId}/outcome`, { method: 'POST', body: JSON.stringify({ outcome, nextFollowupAt }) }),
 };
+
+export interface QueueCard {
+  leadId: string;
+  score: number;
+  tier: 'HOT' | 'WARM' | 'COLD';
+  contact: { name: string | null; phoneE164: string };
+  brief: string;
+}
 
 export interface InventoryProject {
   id: string;

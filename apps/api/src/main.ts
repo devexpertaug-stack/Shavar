@@ -2,7 +2,7 @@ import 'reflect-metadata';
 import { NestFactory } from '@nestjs/core';
 import { ValidationPipe } from '@nestjs/common';
 import { DocumentBuilder, SwaggerModule } from '@nestjs/swagger';
-import { json } from 'express';
+import { json, urlencoded } from 'express';
 import type { Request } from 'express';
 import cookieParser from 'cookie-parser';
 import { AppModule } from './app.module';
@@ -12,7 +12,11 @@ async function bootstrap(): Promise<void> {
 
   app.setGlobalPrefix('api/v1', {
     // /health and the public /webhooks/* endpoints keep their own paths.
-    exclude: ['health', 'webhooks/whatsapp/:provider/:tenantKey'],
+    exclude: [
+      'health',
+      'webhooks/whatsapp/:provider/:tenantKey',
+      'webhooks/exotel/:tenantKey',
+    ],
   });
   app.use(cookieParser());
   // Capture the raw request body so provider webhook HMAC signatures can be
@@ -24,6 +28,8 @@ async function bootstrap(): Promise<void> {
       },
     }),
   );
+  // Telephony providers (Exotel) post form-encoded call webhooks.
+  app.use(urlencoded({ extended: true }));
   app.useGlobalPipes(new ValidationPipe({ whitelist: true, transform: true }));
   app.enableCors({ origin: process.env.APP_URL ?? true, credentials: true });
 

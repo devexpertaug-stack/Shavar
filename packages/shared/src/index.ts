@@ -15,3 +15,5 @@ export * from './routing';
 export * from './matching';
 export * from './agent';
 export * from './stt';
+export * from './queue-ranking';
+export * from './telephony';
