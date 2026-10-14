@@ -10,7 +10,9 @@ import {
   Min,
   MinLength,
 } from 'class-validator';
-import { LeadSource, Tier } from '@estateflow/shared';
+// Prisma generates real TS enums (string-valued) — class-validator's @IsEnum
+// needs those, not the Zod schemas of the same name from @estateflow/shared.
+import { LeadSource, Tier } from '@prisma/client';
 
 export class CreateLeadDto {
   @ApiProperty({ example: '9812345678' })

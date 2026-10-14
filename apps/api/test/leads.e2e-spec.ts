@@ -111,7 +111,7 @@ describe('Leads + pipeline (e2e)', () => {
       .post('/api/v1/leads')
       .set('Authorization', `Bearer ${token}`)
       .send({ phone: '9811111111', name: 'Test Lead', source: 'MANUAL' });
-    expect(res.status).toBe(201);
+    expect(res.status, JSON.stringify(res.body)).toBe(201);
     expect(res.body.contact.phoneE164).toBe('+919811111111');
     expect(res.body.stage).toBe('New');
   });
