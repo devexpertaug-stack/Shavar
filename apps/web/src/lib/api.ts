@@ -145,7 +145,37 @@ export const api = {
     request<Campaign>('/campaigns', { method: 'POST', body: JSON.stringify(body) }),
   sendCampaign: (id: string) => request<{ recipients: number }>(`/campaigns/${id}/send`, { method: 'POST' }),
   campaignStats: (id: string) => request<Record<string, number>>(`/campaigns/${id}/stats`),
+
+  // --- analytics (Task 16) ---
+  overview: () => request<AnalyticsOverview>('/analytics/overview'),
+  funnel: () => request<{ stage: string; count: number }[]>('/analytics/funnel'),
+  agents: () => request<AgentRow[]>('/analytics/agents'),
+  sources: () => request<SourceRow[]>('/analytics/sources'),
 };
+
+export interface AnalyticsOverview {
+  totalLeads: number;
+  byTier: Record<string, number>;
+  bySource: Record<string, number>;
+  llm: { totalTokens: number; costUsd: number };
+  aiVsHuman: { ai: number; human: number; aiResolutionRate: number };
+}
+export interface AgentRow {
+  userId: string;
+  name: string;
+  role: string;
+  calls: number;
+  connects: number;
+  bookings: number;
+  assigned: number;
+}
+export interface SourceRow {
+  source: string;
+  leads: number;
+  bookings: number;
+  adSpend: number;
+  costPerLead: number;
+}
 
 export interface Campaign {
   id: string;

@@ -139,6 +139,7 @@ model Tenant {
   notifications       Notification[]
   campaigns           Campaign[]
   sequences           Sequence[]
+  auditLogs           AuditLog[]
   projects            Project[]
   units               Unit[]
   mediaAssets         MediaAsset[]
@@ -686,4 +687,22 @@ model Sequence {
 
   @@index([tenantId])
   @@map("sequences")
+}
+
+
+// Audit log for assignments, exports, deletions (PRD §5 Security).
+model AuditLog {
+  id        String   @id @default(uuid()) @db.Uuid
+  tenantId  String   @db.Uuid
+  userId    String?  @db.Uuid
+  action    String
+  target    String?
+  metadata  Json     @default("{}")
+  createdAt DateTime @default(now())
+
+  tenant Tenant @relation(fields: [tenantId], references: [id], onDelete: Cascade)
+
+  @@index([tenantId])
+  @@index([tenantId, createdAt])
+  @@map("audit_logs")
 }
