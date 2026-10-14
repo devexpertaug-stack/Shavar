@@ -28,6 +28,9 @@ const tx = {
   tenant: {
     findUnique: vi.fn(async () => ({ id: 'tenant', scoringWeights: {} })),
   },
+  unit: {
+    findMany: vi.fn(async () => []),
+  },
   scoreEvent: {
     create: vi.fn(async () => ({})),
   },

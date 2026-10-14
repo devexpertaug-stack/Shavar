@@ -4,6 +4,8 @@ import {
   createLlmProvider,
   computeScore,
   tierForScore,
+  passesHardFilters,
+  inventoryFitScore,
   type LlmProvider,
   type ScoringWeights,
 } from '@estateflow/shared';
@@ -59,8 +61,26 @@ export async function processAi(job: Job, redis: IORedis): Promise<{ ok: boolean
     const tenant = await tx.tenant.findUnique({ where: { id: tenantId } });
     const weights = (tenant?.scoringWeights ?? {}) as Partial<ScoringWeights>;
 
+    // Inventory fit (Task 9 feeds Task 7 scoring): count available units that
+    // pass the lead's hard filters.
+    let inventoryFit: number | null = null;
+    if (qualification.bhk != null || qualification.budget_max != null) {
+      const units = await tx.unit.findMany({
+        where: { isAvailable: true },
+        include: { project: true },
+        take: 200,
+      });
+      const matches = units.filter((u) =>
+        passesHardFilters(
+          { bhk: u.bhk, priceMin: u.priceMin, priceMax: u.priceMax, location: u.project.location, isAvailable: u.isAvailable },
+          qualification,
+        ),
+      ).length;
+      inventoryFit = inventoryFitScore(matches);
+    }
+
     const result = computeScore(
-      { qualification, inboundCount, source: lead.source, daysSinceLastInbound },
+      { qualification, inboundCount, inventoryFit, source: lead.source, daysSinceLastInbound },
       Object.keys(weights).length ? (weights as ScoringWeights) : undefined,
     );
 

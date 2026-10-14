@@ -1,6 +1,7 @@
 import { emptyQualification, type Qualification } from '../qualification';
 import {
   estimateCostMicroUsd,
+  hashEmbed,
   type ChatMessage,
   type ChatResult,
   type ExtractResult,
@@ -43,6 +44,10 @@ export class MockLlmProvider implements LlmProvider {
         costMicroUsd: estimateCostMicroUsd(20, 10),
       },
     };
+  }
+
+  async embed(text: string): Promise<number[]> {
+    return hashEmbed(text);
   }
 }
 

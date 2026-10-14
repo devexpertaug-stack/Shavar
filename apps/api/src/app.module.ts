@@ -8,6 +8,7 @@ import { UsersModule } from './users/users.module';
 import { LeadsModule } from './leads/leads.module';
 import { MessagesModule } from './messages/messages.module';
 import { RoutingModule } from './routing/routing.module';
+import { InventoryModule } from './inventory/inventory.module';
 import { CryptoModule } from './crypto/crypto.module';
 import { QueueModule } from './queue/queue.module';
 import { RealtimeModule } from './realtime/realtime.module';
@@ -27,6 +28,7 @@ import { WhatsAppModule } from './whatsapp/whatsapp.module';
     LeadsModule,
     MessagesModule,
     RoutingModule,
+    InventoryModule,
     WhatsAppModule,
   ],
 })

@@ -113,7 +113,41 @@ export const api = {
     request<WaMessage>(`/leads/${leadId}/messages`, { method: 'POST', body: JSON.stringify(body) }),
   templates: () => request<Template[]>('/templates'),
   syncTemplates: () => request<{ synced: number }>('/templates/sync', { method: 'POST' }),
+
+  // --- inventory (Task 9) ---
+  projectsList: () => request<InventoryProject[]>('/projects'),
+  units: (projectId?: string) =>
+    request<InventoryUnit[]>(`/units${projectId ? `?projectId=${projectId}` : ''}`),
+  matchUnits: (leadId: string) => request<MatchedUnit[]>(`/units/match?leadId=${leadId}`),
+  sendUnit: (leadId: string, unitId: string, what: 'brochure' | 'location') =>
+    request<{ ok: boolean }>('/units/send', { method: 'POST', body: JSON.stringify({ leadId, unitId, what }) }),
 };
+
+export interface InventoryProject {
+  id: string;
+  name: string;
+  location: string;
+  amenities: string[];
+}
+export interface InventoryUnit {
+  id: string;
+  name: string;
+  bhk: number;
+  priceMin: number;
+  priceMax: number;
+  isAvailable: boolean;
+  project?: { name: string; location: string };
+}
+export interface MatchedUnit {
+  id: string;
+  name: string;
+  bhk: number;
+  priceMin: number;
+  priceMax: number;
+  projectName: string;
+  location: string;
+  distance: number | null;
+}
 
 export interface Conversation {
   leadId: string;

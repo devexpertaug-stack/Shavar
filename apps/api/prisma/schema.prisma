@@ -137,6 +137,9 @@ model Tenant {
   scoreEvents         ScoreEvent[]
   routingRules        RoutingRule[]
   notifications       Notification[]
+  projects            Project[]
+  units               Unit[]
+  mediaAssets         MediaAsset[]
   // Round-robin cursor so routing rotates fairly across invocations.
   routingCursor       Int                  @default(0)
 
@@ -465,4 +468,67 @@ model Notification {
   @@index([tenantId])
   @@index([tenantId, userId, readAt])
   @@map("notifications")
+}
+
+
+// Property project (building/society) — PRD §4.6 / FR-16.
+model Project {
+  id          String   @id @default(uuid()) @db.Uuid
+  tenantId    String   @db.Uuid
+  name        String
+  location    String
+  description String?
+  possession  DateTime?
+  amenities   String[] @default([])
+  mapPin      String?  // "lat,lng"
+  brochureUrl String?
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+
+  tenant Tenant @relation(fields: [tenantId], references: [id], onDelete: Cascade)
+  units  Unit[]
+
+  @@index([tenantId])
+  @@map("projects")
+}
+
+// A sellable unit. The pgvector `embedding` column is added via raw SQL in the
+// migration (Prisma lacks a native vector type) and queried with raw SQL for
+// matching (PRD §4.6 / FR-17).
+model Unit {
+  id          String   @id @default(uuid()) @db.Uuid
+  tenantId    String   @db.Uuid
+  projectId   String   @db.Uuid
+  name        String
+  bhk         Int
+  carpetArea  Int?     // sq ft
+  priceMin    Int      // INR
+  priceMax    Int
+  facing      String?
+  floor       Int?
+  isAvailable Boolean  @default(true)
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+
+  tenant  Tenant  @relation(fields: [tenantId], references: [id], onDelete: Cascade)
+  project Project @relation(fields: [projectId], references: [id], onDelete: Cascade)
+
+  @@index([tenantId])
+  @@index([tenantId, bhk])
+  @@map("units")
+}
+
+model MediaAsset {
+  id        String   @id @default(uuid()) @db.Uuid
+  tenantId  String   @db.Uuid
+  projectId String?  @db.Uuid
+  unitId    String?  @db.Uuid
+  kind      String   // 'image' | 'brochure' | 'floorplan'
+  url       String
+  createdAt DateTime @default(now())
+
+  tenant Tenant @relation(fields: [tenantId], references: [id], onDelete: Cascade)
+
+  @@index([tenantId])
+  @@map("media_assets")
 }

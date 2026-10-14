@@ -1,6 +1,8 @@
 import {
   coerceQualification,
   estimateCostMicroUsd,
+  hashEmbed,
+  EMBEDDING_DIMS,
   QUALIFICATION_SYSTEM_PROMPT,
   type ChatMessage,
   type ChatResult,
@@ -50,6 +52,28 @@ export class GeminiLlmProvider implements LlmProvider {
     const prompt = messages.map((m) => `${m.role.toUpperCase()}: ${m.content}`).join('\n');
     const { text, usage } = await this.generate(prompt, { json: false });
     return { text, usage };
+  }
+
+  async embed(text: string): Promise<number[]> {
+    const model = 'text-embedding-004';
+    const url = `${GEMINI_BASE}/${model}:embedContent?key=${this.config.apiKey}`;
+    try {
+      const res = await fetch(url, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          model: `models/${model}`,
+          content: { parts: [{ text }] },
+        }),
+      });
+      if (!res.ok) throw new Error(`Gemini embed HTTP ${res.status}`);
+      const json = (await res.json()) as { embedding?: { values?: number[] } };
+      const values = json.embedding?.values;
+      if (values && values.length === EMBEDDING_DIMS) return values;
+      return hashEmbed(text);
+    } catch {
+      return hashEmbed(text);
+    }
   }
 
   private async generate(

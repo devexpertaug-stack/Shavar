@@ -2,7 +2,7 @@
 
 import { useCallback, useEffect, useState } from 'react';
 import { useParams } from 'next/navigation';
-import { api, type LeadDetail, type PipelineStage, type WaMessage } from '@/lib/api';
+import { api, type LeadDetail, type PipelineStage, type WaMessage, type MatchedUnit } from '@/lib/api';
 import { getSocket } from '@/lib/socket';
 import { TierBadge } from '@/components/tier-badge';
 
@@ -83,6 +83,7 @@ export default function LeadDetailPage() {
         </div>
 
         <QualificationPanel qualification={lead.qualification} />
+        <MatchedUnitsPanel leadId={id} />
 
         <div className="rounded-xl border border-slate-200 bg-white p-5">
           <h2 className="mb-2 text-sm font-semibold uppercase tracking-wide text-slate-500">
@@ -161,6 +162,50 @@ export default function LeadDetailPage() {
           </ol>
         </div>
       </div>
+    </div>
+  );
+}
+
+function MatchedUnitsPanel({ leadId }: { leadId: string }) {
+  const [units, setUnits] = useState<MatchedUnit[]>([]);
+  const [sent, setSent] = useState<string | null>(null);
+  useEffect(() => {
+    api.matchUnits(leadId).then(setUnits).catch(() => undefined);
+  }, [leadId]);
+  if (units.length === 0) return null;
+  const inr = (n: number) => `₹${(n / 100000).toFixed(1)}L`;
+  return (
+    <div className="rounded-xl border border-slate-200 bg-white p-5">
+      <h2 className="mb-3 text-sm font-semibold uppercase tracking-wide text-slate-500">
+        Matched units
+      </h2>
+      <ul className="space-y-2">
+        {units.map((u) => (
+          <li key={u.id} className="rounded-md border border-slate-100 p-3 text-sm">
+            <p className="font-medium">
+              {u.projectName} · {u.name}
+            </p>
+            <p className="text-xs text-slate-500">
+              {u.bhk}BHK · {u.location} · {inr(u.priceMin)}–{inr(u.priceMax)}
+            </p>
+            <div className="mt-2 flex gap-2">
+              <button
+                onClick={() => api.sendUnit(leadId, u.id, 'brochure').then(() => setSent(u.id))}
+                className="rounded border border-slate-300 px-2 py-0.5 text-xs hover:bg-slate-50"
+              >
+                Send brochure
+              </button>
+              <button
+                onClick={() => api.sendUnit(leadId, u.id, 'location').then(() => setSent(u.id))}
+                className="rounded border border-slate-300 px-2 py-0.5 text-xs hover:bg-slate-50"
+              >
+                Send location
+              </button>
+              {sent === u.id && <span className="text-xs text-emerald-600">queued ✓</span>}
+            </div>
+          </li>
+        ))}
+      </ul>
     </div>
   );
 }

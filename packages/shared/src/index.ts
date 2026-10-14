@@ -12,3 +12,4 @@ export * from './window';
 export * from './llm';
 export * from './scoring';
 export * from './routing';
+export * from './matching';

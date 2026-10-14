@@ -29,12 +29,37 @@ export interface ChatResult {
   usage: LlmUsage;
 }
 
+export const EMBEDDING_DIMS = 768;
+
 export interface LlmProvider {
   readonly model: string;
   /** Extract qualification JSON from the conversation so far. */
   extract(input: { conversation: string; inventoryContext?: string }): Promise<ExtractResult>;
   /** Free-form chat completion (reply agent, Task 10). */
   chat(messages: ChatMessage[]): Promise<ChatResult>;
+  /** Embed text into a fixed-dim vector for inventory matching (Task 9). */
+  embed(text: string): Promise<number[]>;
+}
+
+/**
+ * Deterministic hashing embedder (no API needed). Produces a stable, normalized
+ * EMBEDDING_DIMS-length vector from text so similar strings land near each
+ * other. Used by the mock provider and as a Gemini fallback for tests/dev.
+ */
+export function hashEmbed(text: string, dims = EMBEDDING_DIMS): number[] {
+  const vec = new Array<number>(dims).fill(0);
+  const tokens = text.toLowerCase().split(/\W+/).filter(Boolean);
+  for (const tok of tokens) {
+    let h = 2166136261;
+    for (let i = 0; i < tok.length; i++) {
+      h ^= tok.charCodeAt(i);
+      h = Math.imul(h, 16777619);
+    }
+    const idx = Math.abs(h) % dims;
+    vec[idx] += 1;
+  }
+  const norm = Math.sqrt(vec.reduce((s, v) => s + v * v, 0)) || 1;
+  return vec.map((v) => v / norm);
 }
 
 /**
