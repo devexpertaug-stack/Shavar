@@ -18,3 +18,4 @@ export * from './stt';
 export * from './queue-ranking';
 export * from './telephony';
 export * from './calendar';
+export * from './sources';

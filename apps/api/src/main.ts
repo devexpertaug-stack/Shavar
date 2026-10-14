@@ -16,6 +16,7 @@ async function bootstrap(): Promise<void> {
       'health',
       'webhooks/whatsapp/:provider/:tenantKey',
       'webhooks/exotel/:tenantKey',
+      'webhooks/leads/:source/:tenantKey',
     ],
   });
   app.use(cookieParser());

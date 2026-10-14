@@ -259,6 +259,9 @@ model Lead {
   tenantId       String     @db.Uuid
   contactId      String     @db.Uuid
   source         LeadSource @default(MANUAL)
+  campaignId     String?
+  // Click-to-WhatsApp / ad attribution captured at intake (Task 14).
+  attribution    Json?
   // Stage stored by name for simplicity + tenant-customizable ordering; the
   // PipelineStage table is the source of truth for columns/order.
   stage          String     @default("New")
