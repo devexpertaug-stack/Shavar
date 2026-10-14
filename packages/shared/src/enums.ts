@@ -44,3 +44,24 @@ export type MessageSentBy = z.infer<typeof MessageSentBy>;
 
 export const WhatsAppProviderType = z.enum(['AISENSY', 'WATI', 'META_CLOUD', 'MOCK']);
 export type WhatsAppProviderType = z.infer<typeof WhatsAppProviderType>;
+
+/** Activity timeline event types (PRD §7 activities table). */
+export const ActivityType = z.enum([
+  'NOTE',
+  'STAGE_CHANGE',
+  'ASSIGNMENT',
+  'CALL',
+  'VISIT',
+  'ENQUIRY',
+  'MESSAGE',
+  'SCORE_CHANGE',
+]);
+export type ActivityType = z.infer<typeof ActivityType>;
+
+/**
+ * The terminal "lost" stage requires a reason (FR-20). This is the canonical
+ * stage name used for that rule; tenants may rename stages but the seeded
+ * default set uses this label.
+ */
+export const LOST_STAGE = 'Lost';
+export const BOOKED_STAGE = 'Booked';

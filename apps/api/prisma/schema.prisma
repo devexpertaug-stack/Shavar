@@ -41,6 +41,37 @@ enum InviteStatus {
   EXPIRED
 }
 
+// Lead score tiers (FR-10).
+enum Tier {
+  HOT
+  WARM
+  COLD
+}
+
+// Lead sources (PRD §4.1 / §7). Mirrors packages/shared LeadSource.
+enum LeadSource {
+  WHATSAPP
+  META_LEAD_ADS
+  NINETY_NINE_ACRES
+  MAGICBRICKS
+  HOUSING
+  WEBSITE
+  REFERRAL
+  MANUAL
+}
+
+// Timeline activity types (PRD §7 activities table).
+enum ActivityType {
+  NOTE
+  STAGE_CHANGE
+  ASSIGNMENT
+  CALL
+  VISIT
+  ENQUIRY
+  MESSAGE
+  SCORE_CHANGE
+}
+
 model Tenant {
   id             String   @id @default(uuid()) @db.Uuid
   name           String
@@ -54,9 +85,13 @@ model Tenant {
   createdAt      DateTime @default(now())
   updatedAt      DateTime @updatedAt
 
-  users   User[]
-  teams   Team[]
-  invites Invite[]
+  users          User[]
+  teams          Team[]
+  invites        Invite[]
+  contacts       Contact[]
+  leads          Lead[]
+  pipelineStages PipelineStage[]
+  activities     Activity[]
 
   @@map("tenants")
 }
@@ -126,4 +161,92 @@ model Invite {
   @@index([tenantId])
   @@index([tenantId, email])
   @@map("invites")
+}
+
+
+// A person who enquired. Dedup key is (tenantId, phoneE164) — FR-3.
+model Contact {
+  id         String    @id @default(uuid()) @db.Uuid
+  tenantId   String    @db.Uuid
+  phoneE164  String
+  name       String?
+  language   String?
+  optedIn    Boolean   @default(true)
+  optedOutAt DateTime?
+  createdAt  DateTime  @default(now())
+  updatedAt  DateTime  @updatedAt
+
+  tenant Tenant @relation(fields: [tenantId], references: [id], onDelete: Cascade)
+  leads  Lead[]
+
+  @@unique([tenantId, phoneE164])
+  @@index([tenantId])
+  @@map("contacts")
+}
+
+// Per-tenant pipeline stage (FR-20). order defines kanban column position;
+// isTerminal marks Lost/Booked style end states.
+model PipelineStage {
+  id         String   @id @default(uuid()) @db.Uuid
+  tenantId   String   @db.Uuid
+  name       String
+  order      Int
+  isTerminal Boolean  @default(false)
+  createdAt  DateTime @default(now())
+  updatedAt  DateTime @updatedAt
+
+  tenant Tenant @relation(fields: [tenantId], references: [id], onDelete: Cascade)
+
+  @@unique([tenantId, name])
+  @@index([tenantId])
+  @@map("pipeline_stages")
+}
+
+model Lead {
+  id             String     @id @default(uuid()) @db.Uuid
+  tenantId       String     @db.Uuid
+  contactId      String     @db.Uuid
+  source         LeadSource @default(MANUAL)
+  // Stage stored by name for simplicity + tenant-customizable ordering; the
+  // PipelineStage table is the source of truth for columns/order.
+  stage          String     @default("New")
+  tier           Tier       @default(COLD)
+  score          Int        @default(0)
+  assignedTo     String?    @db.Uuid
+  // Qualification JSON extracted by the LLM (Task 6). Empty until then.
+  qualification  Json       @default("{}")
+  lostReason     String?
+  lastInboundAt  DateTime?
+  nextFollowupAt DateTime?
+  createdAt      DateTime   @default(now())
+  updatedAt      DateTime   @updatedAt
+
+  tenant     Tenant     @relation(fields: [tenantId], references: [id], onDelete: Cascade)
+  contact    Contact    @relation(fields: [contactId], references: [id], onDelete: Cascade)
+  activities Activity[]
+
+  @@index([tenantId])
+  @@index([tenantId, stage])
+  @@index([tenantId, assignedTo])
+  @@index([tenantId, tier])
+  @@map("leads")
+}
+
+// Append-only timeline event for a lead (PRD §7 activities table).
+model Activity {
+  id        String       @id @default(uuid()) @db.Uuid
+  tenantId  String       @db.Uuid
+  leadId    String       @db.Uuid
+  type      ActivityType
+  // Structured payload (e.g. note body, {from,to} for stage change).
+  payload   Json         @default("{}")
+  userId    String?      @db.Uuid
+  createdAt DateTime     @default(now())
+
+  tenant Tenant @relation(fields: [tenantId], references: [id], onDelete: Cascade)
+  lead   Lead   @relation(fields: [leadId], references: [id], onDelete: Cascade)
+
+  @@index([tenantId])
+  @@index([tenantId, leadId])
+  @@map("activities")
 }

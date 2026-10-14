@@ -75,4 +75,71 @@ export const api = {
   logout: () => request<void>('/auth/logout', { method: 'POST' }),
   me: () => request<AuthUser>('/users/me'),
   users: () => request<AuthUser[]>('/users'),
+
+  // --- leads (Task 3) ---
+  leads: (query = '') => request<LeadListResponse>(`/leads${query ? `?${query}` : ''}`),
+  lead: (id: string) => request<LeadDetail>(`/leads/${id}`),
+  board: () => request<BoardResponse>('/leads/board'),
+  stages: () => request<PipelineStage[]>('/leads/stages'),
+  createLead: (body: Record<string, unknown>) =>
+    request<LeadDetail>('/leads', { method: 'POST', body: JSON.stringify(body) }),
+  changeStage: (id: string, stage: string, lostReason?: string) =>
+    request<LeadDetail>(`/leads/${id}/stage`, {
+      method: 'PATCH',
+      body: JSON.stringify({ stage, lostReason }),
+    }),
+  assignLead: (id: string, assignedTo: string | null) =>
+    request<LeadDetail>(`/leads/${id}/assign`, {
+      method: 'PATCH',
+      body: JSON.stringify({ assignedTo }),
+    }),
+  addNote: (id: string, body: string) =>
+    request<unknown>(`/leads/${id}/notes`, { method: 'POST', body: JSON.stringify({ body }) }),
 };
+
+// ---- lead view types (shapes returned by the API) ----
+export interface LeadContact {
+  id: string;
+  phoneE164: string;
+  name: string | null;
+  language: string | null;
+}
+export interface LeadSummary {
+  id: string;
+  source: string;
+  stage: string;
+  tier: 'HOT' | 'WARM' | 'COLD';
+  score: number;
+  assignedTo: string | null;
+  nextFollowupAt: string | null;
+  updatedAt: string;
+  contact: LeadContact;
+}
+export interface LeadActivity {
+  id: string;
+  type: string;
+  payload: Record<string, unknown>;
+  userId: string | null;
+  createdAt: string;
+}
+export interface LeadDetail extends LeadSummary {
+  lostReason: string | null;
+  activities: LeadActivity[];
+}
+export interface LeadListResponse {
+  items: LeadSummary[];
+  total: number;
+  page: number;
+  pageSize: number;
+  totalPages: number;
+}
+export interface PipelineStage {
+  id: string;
+  name: string;
+  order: number;
+  isTerminal: boolean;
+}
+export interface BoardResponse {
+  stages: PipelineStage[];
+  columns: { stage: string; leads: LeadSummary[] }[];
+}
