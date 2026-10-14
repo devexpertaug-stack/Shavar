@@ -210,4 +210,22 @@ describe('Leads + pipeline (e2e)', () => {
     expect(names).toContain('Lost');
     expect(names[0]).toBe('New');
   });
+
+  it('takeover disables the AI and release re-enables it (FR-7)', async () => {
+    if (!dbAvailable) return;
+    const token = await login(`owner@${T.slug}.test`);
+    const created = await http()
+      .post('/api/v1/leads')
+      .set('Authorization', `Bearer ${token}`)
+      .send({ phone: '9877700011' });
+    const id = created.body.id;
+
+    const over = await http().patch(`/api/v1/leads/${id}/takeover`).set('Authorization', `Bearer ${token}`);
+    expect(over.status).toBe(200);
+    expect(over.body.aiActive).toBe(false);
+
+    const rel = await http().patch(`/api/v1/leads/${id}/release`).set('Authorization', `Bearer ${token}`);
+    expect(rel.status).toBe(200);
+    expect(rel.body.aiActive).toBe(true);
+  });
 });

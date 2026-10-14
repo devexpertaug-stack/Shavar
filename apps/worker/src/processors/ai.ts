@@ -136,11 +136,13 @@ export async function processAi(job: Job, redis: IORedis): Promise<{ ok: boolean
     payload: { leadId, qualification, score: scored?.score, tier: scored?.tier },
   });
 
-  // Chain into routing (assign unassigned leads per rules). Best-effort.
+  // Chain into routing (assign unassigned leads per rules) and the AI reply
+  // agent. Best-effort — a Redis hiccup must not fail the committed extraction.
   try {
     await enqueue(QUEUES.ROUTING, 'assign', { tenantId, leadId });
+    await enqueue(QUEUES.AI, 'reply', { tenantId, leadId });
   } catch (err) {
-    logger.warn({ tenantId, err: (err as Error).message }, 'failed to enqueue routing');
+    logger.warn({ tenantId, err: (err as Error).message }, 'failed to enqueue routing/reply');
   }
 
   logger.info(

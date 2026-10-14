@@ -68,6 +68,18 @@ export class LeadsController {
     return this.leads.assign(user, id, dto);
   }
 
+  @Patch(':id/takeover')
+  @ApiOperation({ summary: 'Human takes over — AI goes silent' })
+  takeover(@CurrentUser() user: AuthUser, @Param('id', ParseUUIDPipe) id: string) {
+    return this.leads.takeover(user, id);
+  }
+
+  @Patch(':id/release')
+  @ApiOperation({ summary: 'Hand the conversation back to the AI' })
+  release(@CurrentUser() user: AuthUser, @Param('id', ParseUUIDPipe) id: string) {
+    return this.leads.release(user, id);
+  }
+
   @Post(':id/notes')
   @ApiOperation({ summary: 'Add a note to the lead timeline' })
   addNote(

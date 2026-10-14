@@ -13,3 +13,4 @@ export * from './llm';
 export * from './scoring';
 export * from './routing';
 export * from './matching';
+export * from './agent';

@@ -228,6 +228,29 @@ export class LeadsService {
     });
   }
 
+  /** Human takes over the conversation — the AI goes silent (FR-7). */
+  async takeover(user: AuthUser, id: string) {
+    return this.setAiActive(user, id, false, 'takeover');
+  }
+
+  /** Hand control back to the AI. */
+  async release(user: AuthUser, id: string) {
+    return this.setAiActive(user, id, true, 'release');
+  }
+
+  private async setAiActive(user: AuthUser, id: string, aiActive: boolean, kind: string) {
+    return this.prisma.withTenant(user.tenantId, async (tx) => {
+      const lead = await tx.lead.findUnique({ where: { id } });
+      if (!lead) throw new NotFoundException('Lead not found');
+      this.assertCanAccess(user, lead.assignedTo);
+      await tx.lead.update({ where: { id }, data: { aiActive } });
+      await tx.activity.create({
+        data: { tenantId: user.tenantId, leadId: id, type: 'NOTE', userId: user.id, payload: { kind, aiActive } },
+      });
+      return this.hydrate(tx, id);
+    });
+  }
+
   async addNote(user: AuthUser, id: string, dto: AddNoteDto) {
     return this.prisma.withTenant(user.tenantId, async (tx) => {
       const lead = await tx.lead.findUnique({ where: { id } });

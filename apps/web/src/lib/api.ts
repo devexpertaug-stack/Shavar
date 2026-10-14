@@ -95,6 +95,8 @@ export const api = {
     }),
   addNote: (id: string, body: string) =>
     request<unknown>(`/leads/${id}/notes`, { method: 'POST', body: JSON.stringify({ body }) }),
+  takeover: (id: string) => request<LeadDetail>(`/leads/${id}/takeover`, { method: 'PATCH' }),
+  releaseAi: (id: string) => request<LeadDetail>(`/leads/${id}/release`, { method: 'PATCH' }),
 
   // --- settings / providers (Task 4) ---
   providers: () => request<ProviderSummary[]>('/settings/providers'),

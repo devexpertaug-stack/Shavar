@@ -107,14 +107,35 @@ export default function InboxPage() {
           </div>
         ) : (
           <>
-            <header className="border-b border-slate-100 px-4 py-3">
-              <p className="font-medium">
-                {thread.lead.contact.name ?? thread.lead.contact.phoneE164}
-              </p>
-              <p className="text-xs text-slate-500">
-                {windowOpen ? '24h window open' : 'Window closed — templates only'}
-                {!thread.lead.contact.optedIn && ' · opted out'}
-              </p>
+            <header className="flex items-center justify-between border-b border-slate-100 px-4 py-3">
+              <div>
+                <p className="font-medium">
+                  {thread.lead.contact.name ?? thread.lead.contact.phoneE164}
+                </p>
+                <p className="text-xs text-slate-500">
+                  {windowOpen ? '24h window open' : 'Window closed — templates only'}
+                  {!thread.lead.contact.optedIn && ' · opted out'}
+                </p>
+              </div>
+              <div className="flex items-center gap-2">
+                <span
+                  className={`rounded-full px-2 py-0.5 text-xs font-semibold ${
+                    thread.lead.aiActive ? 'bg-emerald-100 text-emerald-700' : 'bg-slate-200 text-slate-600'
+                  }`}
+                >
+                  {thread.lead.aiActive ? 'AI' : 'Human'}
+                </span>
+                <button
+                  onClick={() =>
+                    (thread.lead.aiActive ? api.takeover(activeId!) : api.releaseAi(activeId!)).then(() =>
+                      loadThread(activeId!),
+                    )
+                  }
+                  className="rounded-md border border-slate-300 px-2 py-1 text-xs hover:bg-slate-50"
+                >
+                  {thread.lead.aiActive ? 'Take over' : 'Give to AI'}
+                </button>
+              </div>
             </header>
 
             <div className="flex-1 space-y-2 overflow-y-auto p-4">

@@ -5,6 +5,7 @@ import { QUEUES, type QueueName } from './queues';
 import { processInbound } from './processors/inbound';
 import { processOutbound } from './processors/outbound';
 import { processAi } from './processors/ai';
+import { processReply } from './processors/reply';
 import { processScoring } from './processors/scoring';
 import { processRouting } from './processors/routing';
 import { processSla } from './processors/sla';
@@ -34,7 +35,7 @@ const placeholder =
 const PROCESSORS: Partial<Record<QueueName, Processor>> = {
   [QUEUES.INBOUND]: (job) => processInbound(job, pub),
   [QUEUES.OUTBOUND]: (job) => processOutbound(job, pub),
-  [QUEUES.AI]: (job) => processAi(job, pub),
+  [QUEUES.AI]: (job) => (job.name === 'reply' ? processReply(job, pub) : processAi(job, pub)),
   [QUEUES.SCORING]: (job) => processScoring(job),
   [QUEUES.ROUTING]: (job) => processRouting(job, pub),
   [QUEUES.SLA]: (job) => processSla(job, pub),
