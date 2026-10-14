@@ -3,6 +3,7 @@ import IORedis from 'ioredis';
 import { logger } from './logger';
 import { QUEUES, type QueueName } from './queues';
 import { processInbound } from './processors/inbound';
+import { processOutbound } from './processors/outbound';
 import { prisma } from './prisma';
 
 /**
@@ -27,6 +28,7 @@ const placeholder =
 
 const PROCESSORS: Partial<Record<QueueName, Processor>> = {
   [QUEUES.INBOUND]: (job) => processInbound(job, pub),
+  [QUEUES.OUTBOUND]: (job) => processOutbound(job, pub),
 };
 
 const workers: Worker[] = [];

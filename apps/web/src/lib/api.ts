@@ -105,7 +105,44 @@ export const api = {
     }),
   deleteProvider: (id: string) =>
     request<unknown>(`/settings/providers/${id}`, { method: 'DELETE' }),
+
+  // --- inbox / messaging (Task 5) ---
+  conversations: () => request<Conversation[]>('/inbox/conversations'),
+  thread: (leadId: string) => request<ThreadResponse>(`/leads/${leadId}/messages`),
+  sendMessage: (leadId: string, body: Record<string, unknown>) =>
+    request<WaMessage>(`/leads/${leadId}/messages`, { method: 'POST', body: JSON.stringify(body) }),
+  templates: () => request<Template[]>('/templates'),
+  syncTemplates: () => request<{ synced: number }>('/templates/sync', { method: 'POST' }),
 };
+
+export interface Conversation {
+  leadId: string;
+  contact: { name: string | null; phoneE164: string; optedIn: boolean };
+  stage: string;
+  tier: 'HOT' | 'WARM' | 'COLD';
+  lastInboundAt: string | null;
+  lastMessage: WaMessage | null;
+  aiActive: boolean;
+}
+export interface ThreadResponse {
+  lead: {
+    id: string;
+    stage: string;
+    tier: 'HOT' | 'WARM' | 'COLD';
+    aiActive: boolean;
+    lastInboundAt: string | null;
+    contact: { name: string | null; phoneE164: string; optedIn: boolean };
+  };
+  messages: WaMessage[];
+}
+export interface Template {
+  id: string;
+  name: string;
+  language: string;
+  body: string;
+  paramCount: number;
+  status: string;
+}
 
 export interface ProviderSummary {
   id: string;

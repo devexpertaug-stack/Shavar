@@ -2,6 +2,7 @@ import type { Job } from 'bullmq';
 import type IORedis from 'ioredis';
 import {
   normalizePhoneE164,
+  isOptOutMessage,
   type InboundMessage,
   type StatusUpdate,
 } from '@estateflow/shared';
@@ -58,13 +59,21 @@ async function processMessage(data: MessageJob, redis: IORedis): Promise<{ ok: b
       if (existing) return { skipped: true as const, leadId: existing.leadId };
     }
 
+    // STOP / unsubscribe keyword opts the contact out of future messages (FR §5).
+    const optOut = isOptOutMessage(message.text);
+
     const contact = await tx.contact.upsert({
       where: { tenantId_phoneE164: { tenantId, phoneE164 } },
-      update: message.contactName ? { name: message.contactName } : {},
+      update: {
+        ...(message.contactName ? { name: message.contactName } : {}),
+        ...(optOut ? { optedIn: false, optedOutAt: new Date() } : {}),
+      },
       create: {
         tenantId,
         phoneE164,
         name: message.contactName ?? null,
+        optedIn: !optOut,
+        optedOutAt: optOut ? new Date() : null,
       },
     });
 

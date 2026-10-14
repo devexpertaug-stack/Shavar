@@ -8,3 +8,4 @@ export * from './leads';
 export * from './crypto';
 export * from './whatsapp';
 export * from './providers';
+export * from './window';
