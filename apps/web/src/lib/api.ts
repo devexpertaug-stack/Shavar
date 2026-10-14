@@ -136,7 +136,24 @@ export const api = {
   checkIn: (id: string, geo: string) => request<unknown>(`/site-visits/${id}/checkin`, { method: 'POST', body: JSON.stringify({ geo }) }),
   checkOut: (id: string, geo: string, feedback?: string) =>
     request<unknown>(`/site-visits/${id}/checkout`, { method: 'POST', body: JSON.stringify({ geo, feedback }) }),
+
+  // --- campaigns (Task 15) ---
+  campaigns: () => request<Campaign[]>('/campaigns'),
+  previewSegment: (segment: Record<string, unknown>) =>
+    request<{ count: number }>('/campaigns/preview', { method: 'POST', body: JSON.stringify({ segment }) }),
+  createCampaign: (body: Record<string, unknown>) =>
+    request<Campaign>('/campaigns', { method: 'POST', body: JSON.stringify(body) }),
+  sendCampaign: (id: string) => request<{ recipients: number }>(`/campaigns/${id}/send`, { method: 'POST' }),
+  campaignStats: (id: string) => request<Record<string, number>>(`/campaigns/${id}/stats`),
 };
+
+export interface Campaign {
+  id: string;
+  name: string;
+  templateName: string;
+  status: string;
+  segment: Record<string, unknown>;
+}
 
 export interface SiteVisit {
   id: string;

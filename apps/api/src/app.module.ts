@@ -12,6 +12,7 @@ import { InventoryModule } from './inventory/inventory.module';
 import { CallsModule } from './calls/calls.module';
 import { VisitsModule } from './visits/visits.module';
 import { SourcesModule } from './sources/sources.module';
+import { CampaignsModule } from './campaigns/campaigns.module';
 import { CryptoModule } from './crypto/crypto.module';
 import { QueueModule } from './queue/queue.module';
 import { RealtimeModule } from './realtime/realtime.module';
@@ -35,6 +36,7 @@ import { WhatsAppModule } from './whatsapp/whatsapp.module';
     CallsModule,
     VisitsModule,
     SourcesModule,
+    CampaignsModule,
     WhatsAppModule,
   ],
 })

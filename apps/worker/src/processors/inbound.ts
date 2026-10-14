@@ -124,6 +124,13 @@ async function processMessage(data: MessageJob, redis: IORedis): Promise<{ ok: b
       },
     });
 
+    // Stop drip/broadcast sends once the lead replies (FR-24): any still-pending
+    // campaign recipients for this lead are skipped.
+    await tx.campaignRecipient.updateMany({
+      where: { leadId: lead.id, status: 'PENDING' },
+      data: { status: 'SKIPPED' },
+    });
+
     return { skipped: false as const, leadId: lead.id, message: stored };
   });
 

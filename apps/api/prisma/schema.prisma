@@ -137,6 +137,8 @@ model Tenant {
   scoreEvents         ScoreEvent[]
   routingRules        RoutingRule[]
   notifications       Notification[]
+  campaigns           Campaign[]
+  sequences           Sequence[]
   projects            Project[]
   units               Unit[]
   mediaAssets         MediaAsset[]
@@ -612,4 +614,76 @@ model SiteVisit {
   @@index([tenantId])
   @@index([tenantId, agentId])
   @@map("site_visits")
+}
+
+
+enum CampaignStatus {
+  DRAFT
+  SCHEDULED
+  SENDING
+  COMPLETED
+  CANCELLED
+}
+
+enum RecipientStatus {
+  PENDING
+  SENT
+  DELIVERED
+  READ
+  FAILED
+  SKIPPED
+}
+
+// Broadcast campaign (PRD §4.9 / FR-22/23).
+model Campaign {
+  id           String         @id @default(uuid()) @db.Uuid
+  tenantId     String         @db.Uuid
+  name         String
+  templateName String
+  // Segment filter JSON (tier/location/budget/stage).
+  segment      Json           @default("{}")
+  status       CampaignStatus @default(DRAFT)
+  scheduledAt  DateTime?
+  createdAt    DateTime       @default(now())
+  updatedAt    DateTime       @updatedAt
+
+  tenant     Tenant              @relation(fields: [tenantId], references: [id], onDelete: Cascade)
+  recipients CampaignRecipient[]
+
+  @@index([tenantId])
+  @@map("campaigns")
+}
+
+model CampaignRecipient {
+  id         String          @id @default(uuid()) @db.Uuid
+  tenantId   String          @db.Uuid
+  campaignId String          @db.Uuid
+  leadId     String          @db.Uuid
+  status     RecipientStatus @default(PENDING)
+  createdAt  DateTime        @default(now())
+  updatedAt  DateTime        @updatedAt
+
+  campaign Campaign @relation(fields: [campaignId], references: [id], onDelete: Cascade)
+
+  @@unique([campaignId, leadId])
+  @@index([tenantId])
+  @@map("campaign_recipients")
+}
+
+// Cold-lead drip sequence (PRD §4.9 / FR-24). Stops automatically on reply.
+model Sequence {
+  id        String   @id @default(uuid()) @db.Uuid
+  tenantId  String   @db.Uuid
+  name      String
+  // Ordered steps: [{ dayOffset, templateName }]
+  steps     Json     @default("[]")
+  segment   Json     @default("{}")
+  isActive  Boolean  @default(true)
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  tenant Tenant @relation(fields: [tenantId], references: [id], onDelete: Cascade)
+
+  @@index([tenantId])
+  @@map("sequences")
 }

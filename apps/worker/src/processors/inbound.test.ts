@@ -46,6 +46,7 @@ const tx = {
     update: vi.fn(async () => ({})),
   },
   activity: { create: vi.fn(async (a: unknown) => { state.activities.push(a); return {}; }) },
+  campaignRecipient: { updateMany: vi.fn(async () => ({ count: 0 })) },
 };
 
 vi.mock('../prisma', () => ({
