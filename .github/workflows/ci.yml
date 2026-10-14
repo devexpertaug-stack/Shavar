@@ -36,7 +36,11 @@ jobs:
           --health-timeout 3s
           --health-retries 10
     env:
-      DATABASE_URL: postgresql://estateflow:estateflow@localhost:5432/estateflow?schema=public
+      # App connects as the non-superuser estateflow_app role so RLS actually
+      # filters (superusers/BYPASSRLS always bypass RLS). Migrations run as the
+      # privileged owner via DATABASE_MIGRATION_URL.
+      DATABASE_URL: postgresql://estateflow_app:estateflow_app@localhost:5432/estateflow?schema=public
+      DATABASE_MIGRATION_URL: postgresql://estateflow:estateflow@localhost:5432/estateflow?schema=public
       REDIS_URL: redis://localhost:6379
       JWT_SECRET: ci-access-secret
       JWT_REFRESH_SECRET: ci-refresh-secret
@@ -70,11 +74,12 @@ jobs:
       - name: Unit tests
         run: pnpm test
 
-      - name: Push schema to CI database
-        # Task 1 has no migrations folder yet; db push syncs the schema so the
-        # e2e health check can hit a real Postgres. Switches to migrate deploy
-        # once Task 2 introduces the first migration.
-        run: pnpm --filter @estateflow/api exec prisma db push --skip-generate
+      - name: Apply migrations (incl. RLS policies + auth functions)
+        # Run as the privileged owner so the SECURITY DEFINER auth_* functions
+        # are owned by a role that bypasses RLS, and so CREATE ROLE works.
+        run: pnpm --filter @estateflow/api exec prisma migrate deploy
+        env:
+          DATABASE_URL: ${{ env.DATABASE_MIGRATION_URL }}
 
       - name: e2e tests (api)
         run: pnpm --filter @estateflow/api test:e2e

@@ -1,8 +1,9 @@
 // EstateFlow Prisma schema.
-// Task 1 establishes the baseline (Tenant) with pgvector enabled. Later tasks
-// (2 = users/teams/auth, 3 = contacts/leads/pipeline, 4+ = messages, etc.)
-// extend this schema. Every tenant-scoped table carries tenantId + timestamps
-// and will be protected by Postgres Row-Level Security (Task 2).
+// Task 1 established the baseline (Tenant). Task 2 adds Team, User and the
+// invite flow. Every tenant-scoped table carries tenantId + timestamps and is
+// protected by Postgres Row-Level Security (see prisma/rls/*.sql, applied by a
+// migration). Later tasks (3 = contacts/leads/pipeline, 4+ = messages, etc.)
+// extend this schema.
 
 generator client {
   provider        = "prisma-client-js"
@@ -22,18 +23,107 @@ enum Plan {
   ENTERPRISE
 }
 
+// RBAC roles (PRD §3). Mirrors packages/shared Role so the two stay in lockstep.
+enum Role {
+  OWNER
+  SALES_MANAGER
+  TELE_CALLER
+  FIELD_AGENT
+  MARKETING
+  POST_SALES
+  CHANNEL_PARTNER
+}
+
+enum InviteStatus {
+  PENDING
+  ACCEPTED
+  REVOKED
+  EXPIRED
+}
+
 model Tenant {
-  id        String   @id @default(uuid()) @db.Uuid
-  name      String
-  slug      String   @unique
-  plan      Plan     @default(FREE)
+  id             String   @id @default(uuid()) @db.Uuid
+  name           String
+  slug           String   @unique
+  plan           Plan     @default(FREE)
   // Free-form tenant settings, AI config and scoring weights (PRD §7).
-  settings  Json     @default("{}")
-  aiConfig  Json     @default("{}")
-  scoringWeights Json @default("{}")
-  isActive  Boolean  @default(true)
+  settings       Json     @default("{}")
+  aiConfig       Json     @default("{}")
+  scoringWeights Json     @default("{}")
+  isActive       Boolean  @default(true)
+  createdAt      DateTime @default(now())
+  updatedAt      DateTime @updatedAt
+
+  users   User[]
+  teams   Team[]
+  invites Invite[]
+
+  @@map("tenants")
+}
+
+model Team {
+  id        String   @id @default(uuid()) @db.Uuid
+  tenantId  String   @db.Uuid
+  name      String
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
 
-  @@map("tenants")
+  tenant Tenant @relation(fields: [tenantId], references: [id], onDelete: Cascade)
+  users  User[]
+
+  @@unique([tenantId, name])
+  @@index([tenantId])
+  @@map("teams")
+}
+
+model User {
+  id             String   @id @default(uuid()) @db.Uuid
+  tenantId       String   @db.Uuid
+  email          String
+  name           String
+  // Argon2id hash. Null until an invited user accepts and sets a password.
+  passwordHash   String?
+  role           Role
+  teamId         String?  @db.Uuid
+  // Language skills for routing (FR-11). ISO-ish codes, e.g. ["en","hi","mr"].
+  languages      String[] @default([])
+  maxActiveLeads Int      @default(100)
+  isActive       Boolean  @default(true)
+  // Bumped on logout / password change to invalidate outstanding refresh tokens.
+  tokenVersion   Int      @default(0)
+  lastLoginAt    DateTime?
+  createdAt      DateTime @default(now())
+  updatedAt      DateTime @updatedAt
+
+  tenant Tenant @relation(fields: [tenantId], references: [id], onDelete: Cascade)
+  team   Team?  @relation(fields: [teamId], references: [id], onDelete: SetNull)
+
+  @@unique([tenantId, email])
+  @@index([tenantId])
+  @@index([tenantId, role])
+  @@map("users")
+}
+
+model Invite {
+  id        String       @id @default(uuid()) @db.Uuid
+  tenantId  String       @db.Uuid
+  email     String
+  name      String
+  role      Role
+  teamId    String?      @db.Uuid
+  languages String[]     @default([])
+  // SHA-256 of the opaque invite token; the raw token is only sent to the invitee.
+  tokenHash String       @unique
+  status    InviteStatus @default(PENDING)
+  invitedBy String?      @db.Uuid
+  expiresAt DateTime
+  acceptedAt DateTime?
+  createdAt DateTime     @default(now())
+  updatedAt DateTime     @updatedAt
+
+  tenant Tenant @relation(fields: [tenantId], references: [id], onDelete: Cascade)
+
+  @@index([tenantId])
+  @@index([tenantId, email])
+  @@map("invites")
 }

@@ -20,6 +20,13 @@ export default function HomePage() {
         </h2>
         <HealthBadge />
       </section>
+
+      <a
+        href="/login"
+        className="inline-block w-fit rounded-md bg-brand px-5 py-2.5 font-medium text-white hover:bg-brand-dark"
+      >
+        Sign in →
+      </a>
     </main>
   );
 }
