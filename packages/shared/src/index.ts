@@ -17,3 +17,4 @@ export * from './agent';
 export * from './stt';
 export * from './queue-ranking';
 export * from './telephony';
+export * from './calendar';

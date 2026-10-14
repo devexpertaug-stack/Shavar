@@ -10,6 +10,7 @@ import { processScoring } from './processors/scoring';
 import { processRouting } from './processors/routing';
 import { processSla } from './processors/sla';
 import { processMedia } from './processors/media';
+import { processCampaigns } from './processors/campaigns';
 import { closeProducer, enqueue } from './producer';
 import { prisma } from './prisma';
 
@@ -41,6 +42,7 @@ const PROCESSORS: Partial<Record<QueueName, Processor>> = {
   [QUEUES.ROUTING]: (job) => processRouting(job, pub),
   [QUEUES.SLA]: (job) => processSla(job, pub),
   [QUEUES.MEDIA]: (job) => processMedia(job, pub),
+  [QUEUES.CAMPAIGNS]: (job) => processCampaigns(job),
 };
 
 const workers: Worker[] = [];

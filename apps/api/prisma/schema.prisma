@@ -141,6 +141,7 @@ model Tenant {
   units               Unit[]
   mediaAssets         MediaAsset[]
   calls               Call[]
+  siteVisits          SiteVisit[]
   // Round-robin cursor so routing rotates fairly across invocations.
   routingCursor       Int                  @default(0)
 
@@ -281,6 +282,7 @@ model Lead {
   messages    Message[]
   scoreEvents ScoreEvent[]
   calls       Call[]
+  siteVisits  SiteVisit[]
 
   @@index([tenantId])
   @@index([tenantId, stage])
@@ -566,4 +568,45 @@ model Call {
   @@index([tenantId])
   @@index([tenantId, leadId])
   @@map("calls")
+}
+
+
+enum VisitStatus {
+  SCHEDULED
+  CONFIRMED
+  CHECKED_IN
+  COMPLETED
+  CANCELLED
+  NO_SHOW
+}
+
+// Site visit booking (PRD §4.7 / FR-18/19). Slot is unique per (agent, slot) to
+// prevent double-booking; GPS check-in/out + feedback by the field agent.
+model SiteVisit {
+  id            String      @id @default(uuid()) @db.Uuid
+  tenantId      String      @db.Uuid
+  leadId        String      @db.Uuid
+  unitId        String?     @db.Uuid
+  projectId     String?     @db.Uuid
+  agentId       String?     @db.Uuid
+  slotAt        DateTime
+  status        VisitStatus @default(SCHEDULED)
+  calendarEventId String?
+  checkinGeo    String?     // "lat,lng"
+  checkoutGeo   String?
+  checkedInAt   DateTime?
+  checkedOutAt  DateTime?
+  feedback      String?
+  remindersSent Json        @default("[]")
+  createdAt     DateTime    @default(now())
+  updatedAt     DateTime    @updatedAt
+
+  tenant Tenant @relation(fields: [tenantId], references: [id], onDelete: Cascade)
+  lead   Lead   @relation(fields: [leadId], references: [id], onDelete: Cascade)
+
+  // Prevent an agent being double-booked for the same slot.
+  @@unique([agentId, slotAt])
+  @@index([tenantId])
+  @@index([tenantId, agentId])
+  @@map("site_visits")
 }

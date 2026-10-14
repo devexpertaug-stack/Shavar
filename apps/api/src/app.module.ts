@@ -10,6 +10,7 @@ import { MessagesModule } from './messages/messages.module';
 import { RoutingModule } from './routing/routing.module';
 import { InventoryModule } from './inventory/inventory.module';
 import { CallsModule } from './calls/calls.module';
+import { VisitsModule } from './visits/visits.module';
 import { CryptoModule } from './crypto/crypto.module';
 import { QueueModule } from './queue/queue.module';
 import { RealtimeModule } from './realtime/realtime.module';
@@ -31,6 +32,7 @@ import { WhatsAppModule } from './whatsapp/whatsapp.module';
     RoutingModule,
     InventoryModule,
     CallsModule,
+    VisitsModule,
     WhatsAppModule,
   ],
 })

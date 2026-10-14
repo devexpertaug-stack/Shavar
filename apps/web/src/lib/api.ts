@@ -130,7 +130,22 @@ export const api = {
     request<{ id: string }>('/calls/click-to-call', { method: 'POST', body: JSON.stringify({ leadId, agentNumber }) }),
   callOutcome: (callId: string, outcome: string, nextFollowupAt?: string) =>
     request<unknown>(`/calls/${callId}/outcome`, { method: 'POST', body: JSON.stringify({ outcome, nextFollowupAt }) }),
+
+  // --- site visits (Task 13) ---
+  visits: () => request<SiteVisit[]>('/site-visits'),
+  checkIn: (id: string, geo: string) => request<unknown>(`/site-visits/${id}/checkin`, { method: 'POST', body: JSON.stringify({ geo }) }),
+  checkOut: (id: string, geo: string, feedback?: string) =>
+    request<unknown>(`/site-visits/${id}/checkout`, { method: 'POST', body: JSON.stringify({ geo, feedback }) }),
 };
+
+export interface SiteVisit {
+  id: string;
+  slotAt: string;
+  status: string;
+  checkinGeo: string | null;
+  feedback: string | null;
+  lead?: { contact: { name: string | null; phoneE164: string } };
+}
 
 export interface QueueCard {
   leadId: string;
