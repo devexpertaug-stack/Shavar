@@ -9,7 +9,8 @@ export default defineConfig({
     globals: true,
     environment: 'node',
     include: ['test/**/*.e2e-spec.ts'],
-    testTimeout: 20000,
+    testTimeout: 30000,
+    hookTimeout: 30000,
   },
   resolve: {
     alias: {

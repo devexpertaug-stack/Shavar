@@ -80,10 +80,13 @@ async function login(slug: string, email: string) {
 beforeAll(async () => {
   process.env.JWT_SECRET ??= 'e2e-access';
   process.env.JWT_REFRESH_SECRET ??= 'e2e-refresh';
+  process.env.ENCRYPTION_KEY ??= Buffer.alloc(32, 7).toString('base64');
 
   const moduleRef = await Test.createTestingModule({ imports: [AppModule] }).compile();
   app = moduleRef.createNestApplication();
-  app.setGlobalPrefix('api/v1', { exclude: ['health'] });
+  app.setGlobalPrefix('api/v1', {
+    exclude: ['health', 'webhooks/whatsapp/:provider/:tenantKey'],
+  });
   app.use(cookieParser());
   app.useGlobalPipes(new ValidationPipe({ whitelist: true, transform: true }));
   await app.init();

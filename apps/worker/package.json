@@ -12,6 +12,7 @@
   },
   "dependencies": {
     "@estateflow/shared": "workspace:*",
+    "@prisma/client": "^5.21.1",
     "bullmq": "^5.21.2",
     "ioredis": "^5.4.1",
     "pino": "^9.5.0"

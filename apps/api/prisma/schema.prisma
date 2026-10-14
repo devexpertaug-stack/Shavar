@@ -72,6 +72,44 @@ enum ActivityType {
   SCORE_CHANGE
 }
 
+// WhatsApp BSP type (mirrors packages/shared WhatsAppProviderType).
+enum WhatsAppProviderType {
+  AISENSY
+  WATI
+  META_CLOUD
+  MOCK
+}
+
+enum MessageDirection {
+  INBOUND
+  OUTBOUND
+}
+
+enum MessageType {
+  text
+  image
+  audio
+  video
+  document
+  interactive
+  template
+}
+
+enum MessageStatus {
+  received
+  queued
+  sent
+  delivered
+  read
+  failed
+}
+
+enum MessageSentBy {
+  ai
+  user
+  system
+}
+
 model Tenant {
   id             String   @id @default(uuid()) @db.Uuid
   name           String
@@ -88,10 +126,12 @@ model Tenant {
   users          User[]
   teams          Team[]
   invites        Invite[]
-  contacts       Contact[]
-  leads          Lead[]
-  pipelineStages PipelineStage[]
-  activities     Activity[]
+  contacts            Contact[]
+  leads               Lead[]
+  pipelineStages      PipelineStage[]
+  activities          Activity[]
+  providerCredentials ProviderCredential[]
+  messages            Message[]
 
   @@map("tenants")
 }
@@ -224,6 +264,7 @@ model Lead {
   tenant     Tenant     @relation(fields: [tenantId], references: [id], onDelete: Cascade)
   contact    Contact    @relation(fields: [contactId], references: [id], onDelete: Cascade)
   activities Activity[]
+  messages   Message[]
 
   @@index([tenantId])
   @@index([tenantId, stage])
@@ -249,4 +290,53 @@ model Activity {
   @@index([tenantId])
   @@index([tenantId, leadId])
   @@map("activities")
+}
+
+
+// Per-tenant WhatsApp BSP credentials (PRD §9). The config (apiKey, baseUrl,
+// webhookSecret, …) is AES-256-GCM encrypted at rest; only encryptedConfig is
+// stored. One active credential per tenant per provider type.
+model ProviderCredential {
+  id              String               @id @default(uuid()) @db.Uuid
+  tenantId        String               @db.Uuid
+  type            WhatsAppProviderType
+  // Opaque per-tenant key used in the webhook URL (/webhooks/whatsapp/:provider/:tenantKey)
+  // so inbound requests resolve to a tenant without exposing the tenant id.
+  tenantKey       String               @unique
+  encryptedConfig String
+  isActive        Boolean              @default(true)
+  createdAt       DateTime             @default(now())
+  updatedAt       DateTime             @updatedAt
+
+  tenant Tenant @relation(fields: [tenantId], references: [id], onDelete: Cascade)
+
+  @@unique([tenantId, type])
+  @@index([tenantId])
+  @@map("provider_credentials")
+}
+
+model Message {
+  id                String           @id @default(uuid()) @db.Uuid
+  tenantId          String           @db.Uuid
+  leadId            String           @db.Uuid
+  direction         MessageDirection
+  type              MessageType      @default(text)
+  body              String?
+  mediaUrl          String?
+  transcript        String?
+  // Unique per tenant so a redelivered webhook is idempotent (FR §4.4 / Task 4).
+  providerMessageId String?
+  status            MessageStatus    @default(received)
+  sentBy            MessageSentBy    @default(system)
+  userId            String?          @db.Uuid
+  createdAt         DateTime         @default(now())
+  updatedAt         DateTime         @updatedAt
+
+  tenant Tenant @relation(fields: [tenantId], references: [id], onDelete: Cascade)
+  lead   Lead   @relation(fields: [leadId], references: [id], onDelete: Cascade)
+
+  @@unique([tenantId, providerMessageId])
+  @@index([tenantId])
+  @@index([tenantId, leadId])
+  @@map("messages")
 }

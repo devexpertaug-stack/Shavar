@@ -2,7 +2,8 @@
 
 import { useCallback, useEffect, useState } from 'react';
 import { useParams } from 'next/navigation';
-import { api, type LeadDetail, type PipelineStage } from '@/lib/api';
+import { api, type LeadDetail, type PipelineStage, type WaMessage } from '@/lib/api';
+import { getSocket } from '@/lib/socket';
 import { TierBadge } from '@/components/tier-badge';
 
 export default function LeadDetailPage() {
@@ -11,6 +12,7 @@ export default function LeadDetailPage() {
   const [lead, setLead] = useState<LeadDetail | null>(null);
   const [stages, setStages] = useState<PipelineStage[]>([]);
   const [note, setNote] = useState('');
+  const [liveMessages, setLiveMessages] = useState<WaMessage[]>([]);
   const [error, setError] = useState<string | null>(null);
 
   const reload = useCallback(() => {
@@ -24,6 +26,20 @@ export default function LeadDetailPage() {
     reload();
     api.stages().then(setStages).catch(() => undefined);
   }, [reload]);
+
+  // Live-subscribe to new WhatsApp messages for this lead (Task 4 realtime).
+  useEffect(() => {
+    const socket = getSocket();
+    const onNew = (msg: WaMessage) => {
+      if (msg.leadId === id) setLiveMessages((prev) => [msg, ...prev]);
+    };
+    socket.emit('lead:subscribe', id);
+    socket.on('message:new', onNew);
+    return () => {
+      socket.emit('lead:unsubscribe', id);
+      socket.off('message:new', onNew);
+    };
+  }, [id]);
 
   async function onStageChange(stage: string) {
     setError(null);
@@ -110,6 +126,22 @@ export default function LeadDetailPage() {
             </button>
           </div>
         </div>
+
+        {liveMessages.length > 0 && (
+          <div className="rounded-xl border border-emerald-200 bg-emerald-50 p-5">
+            <h2 className="mb-3 text-sm font-semibold uppercase tracking-wide text-emerald-700">
+              Live messages
+            </h2>
+            <ul className="space-y-2">
+              {liveMessages.map((m) => (
+                <li key={m.id} className="rounded-md bg-white px-3 py-2 text-sm shadow-sm">
+                  <span className="mr-2 text-xs font-semibold text-slate-400">{m.direction}</span>
+                  {m.body ?? `[${m.type}]`}
+                </li>
+              ))}
+            </ul>
+          </div>
+        )}
 
         <div className="rounded-xl border border-slate-200 bg-white p-5">
           <h2 className="mb-3 text-sm font-semibold uppercase tracking-wide text-slate-500">

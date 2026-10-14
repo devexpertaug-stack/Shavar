@@ -95,7 +95,40 @@ export const api = {
     }),
   addNote: (id: string, body: string) =>
     request<unknown>(`/leads/${id}/notes`, { method: 'POST', body: JSON.stringify({ body }) }),
+
+  // --- settings / providers (Task 4) ---
+  providers: () => request<ProviderSummary[]>('/settings/providers'),
+  upsertProvider: (body: Record<string, unknown>) =>
+    request<ProviderSummary>('/settings/providers', {
+      method: 'PUT',
+      body: JSON.stringify(body),
+    }),
+  deleteProvider: (id: string) =>
+    request<unknown>(`/settings/providers/${id}`, { method: 'DELETE' }),
 };
+
+export interface ProviderSummary {
+  id: string;
+  type: string;
+  tenantKey: string;
+  isActive: boolean;
+  webhookUrl: string;
+  hasApiKey: boolean;
+  hasWebhookSecret: boolean;
+  baseUrl: string | null;
+}
+
+export interface WaMessage {
+  id: string;
+  leadId: string;
+  direction: 'INBOUND' | 'OUTBOUND';
+  type: string;
+  body: string | null;
+  mediaUrl: string | null;
+  status: string;
+  sentBy: string;
+  createdAt: string;
+}
 
 // ---- lead view types (shapes returned by the API) ----
 export interface LeadContact {

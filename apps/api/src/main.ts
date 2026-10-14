@@ -2,14 +2,28 @@ import 'reflect-metadata';
 import { NestFactory } from '@nestjs/core';
 import { ValidationPipe } from '@nestjs/common';
 import { DocumentBuilder, SwaggerModule } from '@nestjs/swagger';
+import { json } from 'express';
+import type { Request } from 'express';
 import cookieParser from 'cookie-parser';
 import { AppModule } from './app.module';
 
 async function bootstrap(): Promise<void> {
   const app = await NestFactory.create(AppModule);
 
-  app.setGlobalPrefix('api/v1', { exclude: ['health'] });
+  app.setGlobalPrefix('api/v1', {
+    // /health and the public /webhooks/* endpoints keep their own paths.
+    exclude: ['health', 'webhooks/whatsapp/:provider/:tenantKey'],
+  });
   app.use(cookieParser());
+  // Capture the raw request body so provider webhook HMAC signatures can be
+  // verified over the exact bytes received.
+  app.use(
+    json({
+      verify: (req: Request & { rawBody?: string }, _res, buf) => {
+        req.rawBody = buf.toString('utf8');
+      },
+    }),
+  );
   app.useGlobalPipes(new ValidationPipe({ whitelist: true, transform: true }));
   app.enableCors({ origin: process.env.APP_URL ?? true, credentials: true });
 

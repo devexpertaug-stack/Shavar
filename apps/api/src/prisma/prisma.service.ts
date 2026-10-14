@@ -1,5 +1,12 @@
 import { Injectable, Logger, OnModuleDestroy, OnModuleInit } from '@nestjs/common';
-import { Prisma, PrismaClient, type Tenant, type User, type Invite } from '@prisma/client';
+import {
+  Prisma,
+  PrismaClient,
+  type Tenant,
+  type User,
+  type Invite,
+  type ProviderCredential,
+} from '@prisma/client';
 
 /**
  * PrismaService exposes two access modes to support Postgres RLS multi-tenancy
@@ -75,6 +82,17 @@ export class PrismaService extends PrismaClient implements OnModuleInit, OnModul
 
   async authFindInviteByHash(hash: string): Promise<Invite | null> {
     const rows = await this.$queryRaw<Invite[]>`SELECT * FROM auth_find_invite_by_hash(${hash})`;
+    return rows[0] ?? null;
+  }
+
+  /**
+   * Resolve an active provider credential by its opaque tenantKey. Used by the
+   * public WhatsApp webhook before a tenant context exists (RLS-safe via the
+   * SECURITY DEFINER function).
+   */
+  async findCredentialByKey(tenantKey: string): Promise<ProviderCredential | null> {
+    const rows = await this.$queryRaw<ProviderCredential[]>`
+      SELECT * FROM wa_find_credential_by_key(${tenantKey})`;
     return rows[0] ?? null;
   }
 }

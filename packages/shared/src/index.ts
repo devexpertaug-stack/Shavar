@@ -5,3 +5,6 @@ export * from './health';
 export * from './auth';
 export * from './phone';
 export * from './leads';
+export * from './crypto';
+export * from './whatsapp';
+export * from './providers';

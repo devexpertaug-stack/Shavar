@@ -12,7 +12,14 @@
 import { randomUUID } from 'node:crypto';
 import { PrismaClient, type Role } from '@prisma/client';
 import * as argon2 from 'argon2';
-import { DEFAULT_STAGES, LOST_STAGE, BOOKED_STAGE, normalizePhoneE164 } from '@estateflow/shared';
+import {
+  DEFAULT_STAGES,
+  LOST_STAGE,
+  BOOKED_STAGE,
+  normalizePhoneE164,
+  encryptJson,
+  loadEncryptionKey,
+} from '@estateflow/shared';
 
 const prisma = new PrismaClient();
 
@@ -96,6 +103,20 @@ async function seedLeadsAndPipeline(tenantId: string, slug: string): Promise<voi
           order,
           isTerminal: name === LOST_STAGE || name === BOOKED_STAGE,
         })),
+      });
+    }
+
+    // A MOCK WhatsApp provider so the demo webhook works out of the box, when
+    // an ENCRYPTION_KEY is available.
+    if (process.env.ENCRYPTION_KEY && (await tx.providerCredential.count()) === 0) {
+      const key = loadEncryptionKey(process.env.ENCRYPTION_KEY);
+      await tx.providerCredential.create({
+        data: {
+          tenantId,
+          type: 'MOCK',
+          tenantKey: 'demo-mock-key',
+          encryptedConfig: encryptJson(key, { type: 'MOCK', webhookSecret: 'demo-secret' }),
+        },
       });
     }
 
