@@ -194,6 +194,7 @@ export interface LeadActivity {
 }
 export interface LeadDetail extends LeadSummary {
   lostReason: string | null;
+  qualification: Record<string, unknown>;
   activities: LeadActivity[];
 }
 export interface LeadListResponse {

@@ -53,6 +53,13 @@ vi.mock('../prisma', () => ({
   prisma: {},
 }));
 
+// Avoid the real BullMQ producer (and its Redis connection) in unit tests.
+const enqueueMock = vi.fn(async () => ({ id: 'job' }));
+vi.mock('../producer', () => ({
+  enqueue: (...args: unknown[]) => enqueueMock(...args),
+  QUEUES: { AI: 'ai.process' },
+}));
+
 import { processInbound } from './inbound';
 
 const redis = { publish: vi.fn(async () => 1) } as unknown as import('ioredis').default;

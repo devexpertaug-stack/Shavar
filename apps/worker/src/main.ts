@@ -4,6 +4,8 @@ import { logger } from './logger';
 import { QUEUES, type QueueName } from './queues';
 import { processInbound } from './processors/inbound';
 import { processOutbound } from './processors/outbound';
+import { processAi } from './processors/ai';
+import { closeProducer } from './producer';
 import { prisma } from './prisma';
 
 /**
@@ -29,6 +31,7 @@ const placeholder =
 const PROCESSORS: Partial<Record<QueueName, Processor>> = {
   [QUEUES.INBOUND]: (job) => processInbound(job, pub),
   [QUEUES.OUTBOUND]: (job) => processOutbound(job, pub),
+  [QUEUES.AI]: (job) => processAi(job, pub),
 };
 
 const workers: Worker[] = [];
@@ -48,6 +51,7 @@ function start(): void {
 async function shutdown(signal: string): Promise<void> {
   logger.info({ signal }, 'shutting down worker');
   await Promise.allSettled(workers.map((w) => w.close()));
+  await closeProducer();
   await prisma.$disconnect();
   await Promise.allSettled([connection.quit(), pub.quit()]);
   process.exit(0);

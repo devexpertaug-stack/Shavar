@@ -7,6 +7,21 @@ import { AiSensyProvider } from './aisensy';
 export { MockWhatsAppProvider } from './mock';
 export { WatiProvider } from './wati';
 export { AiSensyProvider } from './aisensy';
+export { MockLlmProvider, ruleExtract } from './llm-mock';
+export { GeminiLlmProvider } from './llm-gemini';
+
+import type { LlmProvider } from '../llm';
+import { MockLlmProvider } from './llm-mock';
+import { GeminiLlmProvider } from './llm-gemini';
+
+/** Build an LLM provider from env (LLM_PROVIDER / GEMINI_API_KEY). */
+export function createLlmProvider(env: NodeJS.ProcessEnv = process.env): LlmProvider {
+  const provider = (env.LLM_PROVIDER ?? 'mock').toLowerCase();
+  if (provider === 'gemini' && env.GEMINI_API_KEY) {
+    return new GeminiLlmProvider({ apiKey: env.GEMINI_API_KEY, model: env.LLM_MODEL });
+  }
+  return new MockLlmProvider();
+}
 
 /** Build a provider adapter from a decrypted per-tenant config. */
 export function createWhatsAppProvider(config: ProviderConfig): WhatsAppProvider {

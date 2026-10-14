@@ -133,6 +133,7 @@ model Tenant {
   providerCredentials ProviderCredential[]
   messages            Message[]
   templates           Template[]
+  llmUsage            LlmUsage[]
 
   @@map("tenants")
 }
@@ -371,4 +372,25 @@ model Template {
   @@unique([tenantId, name, language])
   @@index([tenantId])
   @@map("templates")
+}
+
+
+// Per-tenant LLM token + cost accounting (PRD §5 observability / §7 llm_usage).
+model LlmUsage {
+  id               String   @id @default(uuid()) @db.Uuid
+  tenantId         String   @db.Uuid
+  leadId           String?  @db.Uuid
+  model            String
+  operation        String   // 'extract' | 'chat' | ...
+  promptTokens     Int      @default(0)
+  completionTokens Int      @default(0)
+  totalTokens      Int      @default(0)
+  costMicroUsd     Int      @default(0)
+  createdAt        DateTime @default(now())
+
+  tenant Tenant @relation(fields: [tenantId], references: [id], onDelete: Cascade)
+
+  @@index([tenantId])
+  @@index([tenantId, createdAt])
+  @@map("llm_usage")
 }

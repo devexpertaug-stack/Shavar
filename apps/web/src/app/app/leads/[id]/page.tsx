@@ -82,6 +82,8 @@ export default function LeadDetailPage() {
           </dl>
         </div>
 
+        <QualificationPanel qualification={lead.qualification} />
+
         <div className="rounded-xl border border-slate-200 bg-white p-5">
           <h2 className="mb-2 text-sm font-semibold uppercase tracking-wide text-slate-500">
             Move to stage
@@ -159,6 +161,36 @@ export default function LeadDetailPage() {
           </ol>
         </div>
       </div>
+    </div>
+  );
+}
+
+function QualificationPanel({ qualification }: { qualification: Record<string, unknown> }) {
+  const q = qualification ?? {};
+  const intent = q.intent as string | undefined;
+  if (!intent) {
+    return (
+      <div className="rounded-xl border border-slate-200 bg-white p-5 text-sm text-slate-500">
+        No AI qualification yet.
+      </div>
+    );
+  }
+  const fmt = (v: unknown) => (Array.isArray(v) ? v.join(', ') : v == null ? '—' : String(v));
+  return (
+    <div className="rounded-xl border border-slate-200 bg-white p-5">
+      <h2 className="mb-3 text-sm font-semibold uppercase tracking-wide text-slate-500">
+        AI qualification
+      </h2>
+      <dl className="space-y-2 text-sm">
+        <Row label="Intent" value={fmt(q.intent)} />
+        <Row label="BHK" value={fmt(q.bhk)} />
+        <Row label="Budget" value={`${fmt(q.budget_min)} – ${fmt(q.budget_max)}`} />
+        <Row label="Locations" value={fmt(q.locations)} />
+        <Row label="Timeline" value={fmt(q.timeline)} />
+        <Row label="Financing" value={fmt(q.financing)} />
+        <Row label="Site visit" value={q.site_visit_interest ? 'Yes' : 'No'} />
+        <Row label="Confidence" value={fmt(q.confidence)} />
+      </dl>
     </div>
   );
 }

@@ -8,6 +8,7 @@ import {
 } from '@estateflow/shared';
 import { withTenant } from '../prisma';
 import { publishRealtime } from '../realtime-publisher';
+import { enqueue, QUEUES } from '../producer';
 import { logger } from '../logger';
 
 interface MessageJob {
@@ -138,6 +139,15 @@ async function processMessage(data: MessageJob, redis: IORedis): Promise<{ ok: b
     event: 'message:new',
     payload: result.message,
   });
+
+  // Chain into AI qualification (Task 6). Best-effort: a Redis hiccup here must
+  // not fail the inbound store (which is already committed).
+  try {
+    await enqueue(QUEUES.AI, 'qualify', { tenantId, leadId: result.leadId });
+  } catch (err) {
+    logger.warn({ tenantId, err: (err as Error).message }, 'failed to enqueue AI step');
+  }
+
   logger.info({ tenantId, leadId: result.leadId }, 'stored inbound message');
   return { ok: true };
 }
