@@ -198,6 +198,7 @@ export interface WaMessage {
   type: string;
   body: string | null;
   mediaUrl: string | null;
+  transcript?: string | null;
   status: string;
   sentBy: string;
   createdAt: string;

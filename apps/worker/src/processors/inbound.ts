@@ -140,12 +140,23 @@ async function processMessage(data: MessageJob, redis: IORedis): Promise<{ ok: b
     payload: result.message,
   });
 
-  // Chain into AI qualification (Task 6). Best-effort: a Redis hiccup here must
-  // not fail the inbound store (which is already committed).
+  // Chain: audio messages go through transcription first (which then triggers
+  // AI); everything else goes straight to AI qualification. Best-effort — a
+  // Redis hiccup must not fail the already-committed inbound store.
   try {
-    await enqueue(QUEUES.AI, 'qualify', { tenantId, leadId: result.leadId });
+    if (message.type === 'audio' && message.mediaUrl) {
+      await enqueue(QUEUES.MEDIA, 'transcribe', {
+        tenantId,
+        leadId: result.leadId,
+        messageId: result.message.id,
+        mediaUrl: message.mediaUrl,
+        mimeType: message.mediaMimeType,
+      });
+    } else {
+      await enqueue(QUEUES.AI, 'qualify', { tenantId, leadId: result.leadId });
+    }
   } catch (err) {
-    logger.warn({ tenantId, err: (err as Error).message }, 'failed to enqueue AI step');
+    logger.warn({ tenantId, err: (err as Error).message }, 'failed to enqueue next step');
   }
 
   logger.info({ tenantId, leadId: result.leadId }, 'stored inbound message');

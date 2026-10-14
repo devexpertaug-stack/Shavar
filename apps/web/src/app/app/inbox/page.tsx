@@ -148,8 +148,18 @@ export default function InboxPage() {
                       : 'bg-slate-100'
                   }`}
                 >
-                  {m.body ?? `[${m.type}]`}
-                  <span className="mt-1 block text-[10px] text-slate-400">{m.status}</span>
+                  {m.type === 'audio' && m.mediaUrl && (
+                    <audio controls src={m.mediaUrl} className="mb-1 w-full" />
+                  )}
+                  {m.type === 'audio' && m.transcript ? (
+                    <span className="italic text-slate-600">“{m.transcript}”</span>
+                  ) : (
+                    (m.body ?? `[${m.type}]`)
+                  )}
+                  <span className="mt-1 block text-[10px] text-slate-400">
+                    {m.sentBy === 'ai' ? 'AI · ' : ''}
+                    {m.status}
+                  </span>
                 </div>
               ))}
             </div>
