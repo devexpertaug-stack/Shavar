@@ -9,6 +9,7 @@ import {
 } from '@estateflow/shared';
 import { withTenant } from '../prisma';
 import { publishRealtime } from '../realtime-publisher';
+import { enqueue, QUEUES } from '../producer';
 import { logger } from '../logger';
 
 interface AiJob {
@@ -114,6 +115,14 @@ export async function processAi(job: Job, redis: IORedis): Promise<{ ok: boolean
     event: 'lead:qualification',
     payload: { leadId, qualification, score: scored?.score, tier: scored?.tier },
   });
+
+  // Chain into routing (assign unassigned leads per rules). Best-effort.
+  try {
+    await enqueue(QUEUES.ROUTING, 'assign', { tenantId, leadId });
+  } catch (err) {
+    logger.warn({ tenantId, err: (err as Error).message }, 'failed to enqueue routing');
+  }
+
   logger.info(
     { tenantId, leadId, intent: qualification.intent, score: scored?.score },
     'qualified + scored lead',

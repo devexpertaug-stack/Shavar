@@ -47,6 +47,12 @@ vi.mock('../prisma', () => ({
   prisma: {},
 }));
 
+// Avoid the real BullMQ producer (Redis) when the AI step chains into routing.
+vi.mock('../producer', () => ({
+  enqueue: vi.fn(async () => ({ id: 'job' })),
+  QUEUES: { ROUTING: 'routing.assign' },
+}));
+
 // Force the deterministic mock LLM.
 delete process.env.GEMINI_API_KEY;
 process.env.LLM_PROVIDER = 'mock';

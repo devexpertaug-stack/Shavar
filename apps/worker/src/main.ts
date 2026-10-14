@@ -6,6 +6,8 @@ import { processInbound } from './processors/inbound';
 import { processOutbound } from './processors/outbound';
 import { processAi } from './processors/ai';
 import { processScoring } from './processors/scoring';
+import { processRouting } from './processors/routing';
+import { processSla } from './processors/sla';
 import { closeProducer, enqueue } from './producer';
 import { prisma } from './prisma';
 
@@ -34,6 +36,8 @@ const PROCESSORS: Partial<Record<QueueName, Processor>> = {
   [QUEUES.OUTBOUND]: (job) => processOutbound(job, pub),
   [QUEUES.AI]: (job) => processAi(job, pub),
   [QUEUES.SCORING]: (job) => processScoring(job),
+  [QUEUES.ROUTING]: (job) => processRouting(job, pub),
+  [QUEUES.SLA]: (job) => processSla(job, pub),
 };
 
 const workers: Worker[] = [];

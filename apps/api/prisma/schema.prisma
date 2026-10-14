@@ -135,6 +135,10 @@ model Tenant {
   templates           Template[]
   llmUsage            LlmUsage[]
   scoreEvents         ScoreEvent[]
+  routingRules        RoutingRule[]
+  notifications       Notification[]
+  // Round-robin cursor so routing rotates fairly across invocations.
+  routingCursor       Int                  @default(0)
 
   @@map("tenants")
 }
@@ -414,4 +418,51 @@ model ScoreEvent {
   @@index([tenantId])
   @@index([tenantId, leadId])
   @@map("score_events")
+}
+
+
+// Routing rule (PRD §4.4 / FR-11). conditions/action are JSON validated by the
+// shared zod schemas; priority ascending = higher precedence.
+model RoutingRule {
+  id         String   @id @default(uuid()) @db.Uuid
+  tenantId   String   @db.Uuid
+  name       String
+  priority   Int      @default(100)
+  conditions Json     @default("{}")
+  action     Json     @default("{}")
+  isActive   Boolean  @default(true)
+  createdAt  DateTime @default(now())
+  updatedAt  DateTime @updatedAt
+
+  tenant Tenant @relation(fields: [tenantId], references: [id], onDelete: Cascade)
+
+  @@index([tenantId])
+  @@index([tenantId, priority])
+  @@map("routing_rules")
+}
+
+enum NotificationType {
+  LEAD_ASSIGNED
+  SLA_ESCALATION
+  HOT_LEAD
+  SYSTEM
+}
+
+// In-app notifications (PRD §4.11 / FR-27).
+model Notification {
+  id        String           @id @default(uuid()) @db.Uuid
+  tenantId  String           @db.Uuid
+  userId    String           @db.Uuid
+  type      NotificationType
+  title     String
+  body      String?
+  leadId    String?          @db.Uuid
+  readAt    DateTime?
+  createdAt DateTime         @default(now())
+
+  tenant Tenant @relation(fields: [tenantId], references: [id], onDelete: Cascade)
+
+  @@index([tenantId])
+  @@index([tenantId, userId, readAt])
+  @@map("notifications")
 }
