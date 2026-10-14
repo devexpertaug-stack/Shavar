@@ -1,0 +1,81 @@
+name: CI
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+
+concurrency:
+  group: ci-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  verify:
+    runs-on: ubuntu-latest
+    services:
+      postgres:
+        image: pgvector/pgvector:pg16
+        env:
+          POSTGRES_USER: estateflow
+          POSTGRES_PASSWORD: estateflow
+          POSTGRES_DB: estateflow
+        ports:
+          - 5432:5432
+        options: >-
+          --health-cmd "pg_isready -U estateflow"
+          --health-interval 5s
+          --health-timeout 5s
+          --health-retries 10
+      redis:
+        image: redis:7-alpine
+        ports:
+          - 6379:6379
+        options: >-
+          --health-cmd "redis-cli ping"
+          --health-interval 5s
+          --health-timeout 3s
+          --health-retries 10
+    env:
+      DATABASE_URL: postgresql://estateflow:estateflow@localhost:5432/estateflow?schema=public
+      REDIS_URL: redis://localhost:6379
+      JWT_SECRET: ci-access-secret
+      JWT_REFRESH_SECRET: ci-refresh-secret
+      ENCRYPTION_KEY: 0000000000000000000000000000000000000000000=
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: pnpm/action-setup@v4
+        with:
+          version: 9
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 20
+          cache: pnpm
+
+      - name: Install dependencies
+        run: pnpm install --frozen-lockfile
+
+      - name: Generate Prisma client
+        run: pnpm --filter @estateflow/api prisma:generate
+
+      - name: Build shared package
+        run: pnpm --filter @estateflow/shared build
+
+      - name: Lint
+        run: pnpm lint
+
+      - name: Typecheck
+        run: pnpm typecheck
+
+      - name: Unit tests
+        run: pnpm test
+
+      - name: Push schema to CI database
+        # Task 1 has no migrations folder yet; db push syncs the schema so the
+        # e2e health check can hit a real Postgres. Switches to migrate deploy
+        # once Task 2 introduces the first migration.
+        run: pnpm --filter @estateflow/api exec prisma db push --skip-generate
+
+      - name: e2e tests (api)
+        run: pnpm --filter @estateflow/api test:e2e

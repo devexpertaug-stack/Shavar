@@ -1,0 +1,39 @@
+// EstateFlow Prisma schema.
+// Task 1 establishes the baseline (Tenant) with pgvector enabled. Later tasks
+// (2 = users/teams/auth, 3 = contacts/leads/pipeline, 4+ = messages, etc.)
+// extend this schema. Every tenant-scoped table carries tenantId + timestamps
+// and will be protected by Postgres Row-Level Security (Task 2).
+
+generator client {
+  provider        = "prisma-client-js"
+  previewFeatures = ["postgresqlExtensions"]
+}
+
+datasource db {
+  provider   = "postgresql"
+  url        = env("DATABASE_URL")
+  extensions = [vector, pgcrypto]
+}
+
+enum Plan {
+  FREE
+  STARTER
+  GROWTH
+  ENTERPRISE
+}
+
+model Tenant {
+  id        String   @id @default(uuid()) @db.Uuid
+  name      String
+  slug      String   @unique
+  plan      Plan     @default(FREE)
+  // Free-form tenant settings, AI config and scoring weights (PRD §7).
+  settings  Json     @default("{}")
+  aiConfig  Json     @default("{}")
+  scoringWeights Json @default("{}")
+  isActive  Boolean  @default(true)
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  @@map("tenants")
+}

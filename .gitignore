@@ -1,0 +1,39 @@
+# deps
+node_modules/
+.pnpm-store/
+
+# builds
+dist/
+.next/
+out/
+build/
+.turbo/
+
+# env
+.env
+.env.*
+!.env.example
+
+# logs
+*.log
+npm-debug.log*
+pnpm-debug.log*
+
+# test / coverage
+coverage/
+*.lcov
+
+# prisma
+apps/api/prisma/*.db
+
+# typescript incremental build info
+*.tsbuildinfo
+
+# local kiro agent settings
+.kiro/settings/
+
+# os / editor
+.DS_Store
+.idea/
+.vscode/
+*.swp
